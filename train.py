@@ -6,11 +6,12 @@ from torch.utils.tensorboard import SummaryWriter
 from validation import validate_net
 
 EVERY_N_MINI_BATCHES = 1250
-PATH = './cifar_net_best_accuracy.pth'
+PATH = 'best_results/'
 
 
 def train(net: nn.Module, epochs: int, criterion: nn.Module, optimizer: optim.Optimizer,
-          log_to_tensorboard=False, train_name="train", validation_name="validation") -> None:
+          log_to_tensorboard: bool = False, train_name: str = "train", validation_name: str = "validation",
+          save_name: str = "cifar_model_best") -> None:
     best_validation_accuracy = None
     writer = SummaryWriter()
     total = len(train_loader.dataset)
@@ -40,10 +41,10 @@ def train(net: nn.Module, epochs: int, criterion: nn.Module, optimizer: optim.Op
             # save best
             if i % EVERY_N_MINI_BATCHES == EVERY_N_MINI_BATCHES - 1:
                 # save best loss
-                validation_accuracy, validation_loss = validate_net(net)
-                if best_validation_accuracy is None or validation_accuracy < best_validation_accuracy:
+                validation_accuracy, validation_loss = validate_net(net, criterion=criterion)
+                if best_validation_accuracy is None or validation_accuracy > best_validation_accuracy:
                     best_validation_accuracy = validation_accuracy
-                    torch.save(net.state_dict(), PATH.format())
+                    torch.save(net.state_dict(), PATH + save_name)
 
                 if log_to_tensorboard:
                     writer.add_scalar(train_name + "/train_loss", running_loss / total, batch_no)

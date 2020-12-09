@@ -3,7 +3,7 @@ import torch
 from cifar10_dataset import validation_loader
 
 
-def validate_net(net: nn.Module) -> (float, float):
+def validate_net(net: nn.Module, criterion: nn.Module = None) -> (float, float):
     correct = 0
     loss = 0.0
 
@@ -13,6 +13,8 @@ def validate_net(net: nn.Module) -> (float, float):
             images, labels = images.cuda(), labels.cuda()
 
             outputs = net(images)
+            if criterion is not None:
+                loss += criterion(outputs, labels).item()
 
             _, predicted = torch.max(outputs.data, 1)
             correct += (predicted == labels).sum().item()
