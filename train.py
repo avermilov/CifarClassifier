@@ -1,33 +1,33 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from cifar10_dataset import train_loader
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from validation import validate_net
+from device import DEVICE
 
-EVERY_N_MINI_BATCHES = 1250
+EVERY_N_MINI_BATCHES = 125
 PATH = 'best_results/'
 
 
-def train(net: nn.Module, epochs: int, criterion: nn.Module, optimizer: optim.Optimizer,
+def train(net: nn.Module, epochs: int, criterion: nn.Module, optimizer: optim.Optimizer, train_loader: DataLoader,
           log_to_tensorboard: bool = False, train_name: str = "train", validation_name: str = "validation",
           save_name: str = "cifar_model_best") -> None:
     best_validation_accuracy = None
     writer = SummaryWriter()
-    total = len(train_loader.dataset)
-    batch_no = 0
+    minibatch_no = 0
     for epoch in range(epochs):
         running_loss = 0.0
         correct = 0
         total = 0
         for i, data in enumerate(train_loader, 0):
             inputs, labels = data
-            inputs, labels = inputs.cuda(), labels.cuda()
+            inputs, labels = inputs.to(DEVICE), labels.to(DEVICE)
             total += labels.size(0)
 
             optimizer.zero_grad()
 
-            outputs = net(inputs).cuda()
+            outputs = net(inputs).to(DEVICE)
 
             _, predicted = torch.max(outputs.data, 1)
             correct += (predicted == labels).sum().item()
@@ -47,10 +47,10 @@ def train(net: nn.Module, epochs: int, criterion: nn.Module, optimizer: optim.Op
                     torch.save(net.state_dict(), PATH + save_name)
 
                 if log_to_tensorboard:
-                    writer.add_scalar(train_name + "/train_loss", running_loss / total, batch_no)
-                    writer.add_scalar(train_name + "/train_accuracy", correct / total, batch_no)
-                    writer.add_scalar(validation_name + "/validation_accuracy", validation_accuracy, batch_no)
-                    writer.add_scalar(validation_name + "/validation_loss", validation_loss, batch_no)
-                batch_no += 1
+                    writer.add_scalar(train_name + "/train_loss", running_loss / total, minibatch_no)
+                    writer.add_scalar(train_name + "/train_accuracy", correct / total, minibatch_no)
+                    writer.add_scalar(validation_name + "/validation_accuracy", validation_accuracy, minibatch_no)
+                    writer.add_scalar(validation_name + "/validation_loss", validation_loss, minibatch_no)
+                minibatch_no += 1
 
     writer.close()
