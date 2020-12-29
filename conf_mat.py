@@ -7,21 +7,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def get_cm_plot(cm: torch.Tensor, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
-    cm = cm.float() / cm.sum(axis=1)[:, np.newaxis]
-
+def get_conf_mat_plot(conf_mat: torch.Tensor, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
+    conf_mat = conf_mat.float() / conf_mat.sum(axis=1)[:, np.newaxis]
     fig = plt.figure(figsize=(len(classes), len(classes)))
-    plt.imshow(cm, interpolation='nearest', cmap=cmap, figure=fig)
+    plt.imshow(conf_mat, interpolation='nearest', cmap=cmap, figure=fig)
     plt.title(title, figure=fig)
     tick_marks = np.arange(len(classes))
     plt.xticks(tick_marks, classes, rotation=45, figure=fig)
     plt.yticks(tick_marks, classes, figure=fig)
 
     fmt = '.2f' if normalize else 'd'
-    thresh = cm.max() / 2.
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black", figure=fig)
+    thresh = conf_mat.max() / 2.
+    for i, j in itertools.product(range(conf_mat.shape[0]), range(conf_mat.shape[1])):
+        plt.text(j, i, format(conf_mat[i, j], fmt), horizontalalignment="center",
+                 color="white" if conf_mat[i, j] > thresh else "black", figure=fig)
 
     plt.tight_layout()
     plt.ylabel('True label', figure=fig)
@@ -43,7 +42,7 @@ def get_preds_and_labels(net: nn.Module, data_loader: DataLoader) -> (torch.Tens
     return all_preds, all_labels
 
 
-def get_confusion_matrix(net: nn.Module, data_loader: DataLoader, num_classes: int, normalize=True) -> torch.Tensor:
+def get_conf_mat(net: nn.Module, data_loader: DataLoader, num_classes: int) -> torch.Tensor:
     train_preds, train_labels = get_preds_and_labels(net, data_loader)
     mat = torch.zeros(num_classes, num_classes, dtype=torch.int64)
     for tl, pl in zip(train_labels, train_preds.argmax(dim=1)):

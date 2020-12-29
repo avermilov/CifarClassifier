@@ -1,18 +1,23 @@
+from typing import Union, List
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import conf_mat
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from validation import validate_net
 from device import DEVICE
 
-EVERY_N_MINI_BATCHES = 125
+CIFAR10_EVERY_N_MINI_BATCHES = 125
 PATH = 'best_results/'
 
 
-def train(net: nn.Module, epochs: int, criterion: nn.Module, optimizer: optim.Optimizer, train_loader: DataLoader,
-          log_to_tensorboard: bool = False, train_name: str = "train", validation_name: str = "validation",
-          save_name: str = "cifar_model_best") -> None:
+def train(net: nn.Module, epochs: int, criterion: nn.Module, optimizer: optim.Optimizer,
+          train_loader: DataLoader, validation_loader: DataLoader, classes: Union[List, tuple],
+          tb_log_graphs: bool = False, tb_log_conf_mat=False, train_folder_name: str = "train",
+          validation_folder_name: str = "validation",
+          model_save_filename: str = "model_best", confusion_matrix_name: str = "confusion_matrix") -> None:
     best_validation_accuracy = None
     writer = SummaryWriter()
     minibatch_no = 0
@@ -38,19 +43,21 @@ def train(net: nn.Module, epochs: int, criterion: nn.Module, optimizer: optim.Op
 
             running_loss += loss.item()
 
-            # save best
-            if i % EVERY_N_MINI_BATCHES == EVERY_N_MINI_BATCHES - 1:
-                # save best loss
-                validation_accuracy, validation_loss = validate_net(net, criterion=criterion)
+            if i % CIFAR10_EVERY_N_MINI_BATCHES == CIFAR10_EVERY_N_MINI_BATCHES - 1:
+                validation_accuracy, validation_loss = validate_net(net, criterion, validation_loader)
                 if best_validation_accuracy is None or validation_accuracy > best_validation_accuracy:
                     best_validation_accuracy = validation_accuracy
-                    torch.save(net.state_dict(), PATH + save_name)
-
-                if log_to_tensorboard:
-                    writer.add_scalar(train_name + "/train_loss", running_loss / total, minibatch_no)
-                    writer.add_scalar(train_name + "/train_accuracy", correct / total, minibatch_no)
-                    writer.add_scalar(validation_name + "/validation_accuracy", validation_accuracy, minibatch_no)
-                    writer.add_scalar(validation_name + "/validation_loss", validation_loss, minibatch_no)
+                    torch.save(net.state_dict(), PATH + model_save_filename)
+                if tb_log_conf_mat:
+                    fig = conf_mat.get_conf_mat_plot(conf_mat.get_conf_mat(net, validation_loader, len(classes)),
+                                                     classes, normalize=True)
+                    writer.add_figure(confusion_matrix_name, fig, minibatch_no)
+                if tb_log_graphs:
+                    writer.add_scalar(train_folder_name + "/train_loss", running_loss / total, minibatch_no)
+                    writer.add_scalar(train_folder_name + "/train_accuracy", correct / total, minibatch_no)
+                    writer.add_scalar(validation_folder_name + "/validation_accuracy", validation_accuracy,
+                                      minibatch_no)
+                    writer.add_scalar(validation_folder_name + "/validation_loss", validation_loss, minibatch_no)
                 minibatch_no += 1
 
     writer.close()

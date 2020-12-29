@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torchvision
-from cifar10_dataset import train_loader, classes
+from cifar10_dataset import cifar10_train_loader, cifar10_classes
 
 
 def imshow(img):
@@ -13,10 +13,10 @@ def imshow(img):
 
 if __name__ == "__main__":
     # get some random training images
-    dataiter = iter(train_loader)
+    dataiter = iter(cifar10_train_loader)
     images, labels = dataiter.next()
 
     # show images
     imshow(torchvision.utils.make_grid(images))
     # print labels
-    print(' '.join('%5s' % classes[labels[j]] for j in range(4)))
+    print(' '.join('%5s' % cifar10_classes[labels[j]] for j in range(4)))
